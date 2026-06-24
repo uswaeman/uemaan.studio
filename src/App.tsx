@@ -72,7 +72,7 @@ const reviews = [
   },
   {
     name: 'Ayesha K.',
-    text: 'The fabric drapes so well in person. uemaan.studio feels thoughtful, polished, and easy to trust.',
+    text: 'The fabric drapes so well in person. ueman.studio feels thoughtful, polished, and easy to trust.',
   },
 ];
 
@@ -271,7 +271,7 @@ function App() {
         <Route
           path="/about"
           element={
-            <SimpleContentPage title="About uemaan.studio" intro="A modern clothing label shaped around restraint, softness, and elevated everyday dressing.">
+            <SimpleContentPage title="About ueman.studio" intro="A modern clothing label shaped around restraint, softness, and elevated everyday dressing.">
               <div className="value-grid">
                 <article className="info-card fade-in">
                   <h3>Design Language</h3>
@@ -288,7 +288,7 @@ function App() {
                 <article className="info-card fade-in stagger-2">
                   <h3>Brand Promise</h3>
                   <p>
-                    uemaan.studio is designed for women who prefer sophistication over noise, with a wardrobe that transitions effortlessly from everyday moments to intimate occasions.
+                    ueman.studio is designed for women who prefer sophistication over noise, with a wardrobe that transitions effortlessly from everyday moments to intimate occasions.
                   </p>
                 </article>
               </div>
@@ -317,9 +317,9 @@ function App() {
               <div className="contact-grid">
                 <article className="info-card fade-in">
                   <h3>Studio Contact</h3>
-                  <p>Email: hello@uemaan.studio</p>
+                  <p>Email: hello@ueman.studio</p>
                   <p>Phone: +92 300 000 0000</p>
-                  <p>Instagram: @uemaan.studio</p>
+                  <p>Instagram: @ueman.studio</p>
                 </article>
                 <article className="info-card fade-in stagger-1">
                   <h3>Customer Care</h3>
@@ -381,9 +381,9 @@ function Header({
     <header className="site-header">
       <div className="container header-inner">
         <Link className="brand-mark" to="/">
-          <img src="/assets/logo.jpg" alt="uemaan.studio logo" />
+          <img src="/assets/logo.jpg" alt="ueman.studio logo" />
           <div className="brand-copy">
-            <strong>uemaan.studio</strong>
+            <strong>ueman.studio</strong>
             <span>By Uswa Eman</span>
           </div>
         </Link>
@@ -454,7 +454,7 @@ function HomePage({
         <div className="container hero-grid">
           <div className="hero-copy fade-in">
             <div className="eyebrow">Contemporary luxury wardrobe</div>
-            <h1>uemaan.studio</h1>
+            <h1>ueman.studio</h1>
             <p>
               Soft neutrals, fluid tailoring, and thoughtful silhouettes for women who prefer elegance without excess.
             </p>
@@ -469,7 +469,7 @@ function HomePage({
           </div>
 
           <div className="hero-visual fade-in stagger-1">
-            <img src="/assets/product-2.jpeg" alt="Model wearing uemaan.studio outfit" />
+            <img src="/assets/product-2.jpeg" alt="Model wearing ueman.studio outfit" />
             <div className="hero-note">
               <strong>Premium day-to-evening dressing</strong>
               <p className="muted">Designed in a neutral palette with quiet confidence and effortless polish.</p>
@@ -560,15 +560,15 @@ function HomePage({
               <h2>Styled in soft light</h2>
             </div>
             <a className="ghost-button" href="https://instagram.com" target="_blank" rel="noreferrer">
-              Follow @uemaan.studio
+              Follow @ueman.studio
             </a>
           </div>
           <div className="instagram-grid">
             {['/assets/product-2.jpeg', '/assets/product-1.jpeg', '/assets/product-5.jpeg', '/assets/product-6.jpeg'].map(
               (image, index) => (
                 <article key={image} className={`instagram-card fade-in stagger-${Math.min(index, 3)}`}>
-                  <img src={image} alt="uemaan.studio editorial moment" />
-                  <span>@uemaan.studio</span>
+                  <img src={image} alt="ueman.studio editorial moment" />
+                  <span>@ueman.studio</span>
                 </article>
               ),
             )}
@@ -1040,7 +1040,7 @@ function CheckoutPage({
                 <div className="page-stack">
                   <div className="notice-box">
                     <strong>EasyPaisa details</strong>
-                    <p>Account title: uemaan.studio</p>
+                    <p>Account title: ueman.studio</p>
                     <p>Account number: 0300-1234567</p>
                     <p>Transfer the total amount and upload your payment screenshot below.</p>
                   </div>
@@ -1155,7 +1155,7 @@ function SimpleContentPage({
     <main className="page-section page-hero">
       <div className="container page-stack">
         <article className="content-card fade-in">
-          <div className="eyebrow">uemaan.studio</div>
+          <div className="eyebrow">ueman.studio</div>
           <h1>{title}</h1>
           <p>{intro}</p>
         </article>
@@ -1224,19 +1224,19 @@ function Footer() {
       <div className="container footer-card">
         <div className="footer-grid">
           <div>
-            <div className="brand-wordmark">uemaan.studio</div>
+            <div className="brand-wordmark">ueman.studio</div>
             <p>Premium contemporary clothing designed in soft neutrals for elevated daily and occasion dressing.</p>
           </div>
           <div>
             <div className="eyebrow">Contact</div>
             <p>
-              <Mail size={16} /> hello@uemaan.studio
+              <Mail size={16} /> hello@ueman.studio
             </p>
             <p>
               <Phone size={16} /> +92 300 000 0000
             </p>
             <p>
-              @uemaan.studio
+              @ueman.studio
             </p>
           </div>
           <div>

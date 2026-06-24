@@ -37,7 +37,7 @@ jobs:
         run: npm run build
 
       - name: Add custom domain file
-        run: echo 'uemaan.studio' > dist/CNAME
+        run: echo 'ueman.studio' > dist/CNAME
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
