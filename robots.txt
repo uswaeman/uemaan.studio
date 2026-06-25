@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://ueman.studio/sitemap.xmlUser-agent: *
+Allow: /
+
+Sitemap: https://ueman.studio/sitemap.xml

@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>ueman.studio</title>
+    <script>
+      (function () {
+        var next = location.pathname + location.search + location.hash;
+        var encoded = encodeURIComponent(next);
+        location.replace('/?p=' + encoded);
+      })();
+    </script>
+  </head>
+  <body></body>
+</html>
