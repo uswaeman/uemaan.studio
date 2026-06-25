@@ -4,6 +4,13 @@ on:
   push:
     branches:
       - main
+    paths-ignore:
+      - 'assets/**'
+      - '404.html'
+      - 'robots.txt'
+      - 'sitemap.xml'
+      - 'site.webmanifest'
+      - '.nojekyll'
 
   workflow_dispatch:
 
@@ -38,6 +45,29 @@ jobs:
 
       - name: Add custom domain file
         run: echo 'ueman.studio' > dist/CNAME
+
+      - name: Sync deploy files to repository root
+        run: |
+          mkdir -p assets
+          cp -R public/assets/. assets/
+          cp -R dist/assets/. assets/
+          cp dist/404.html .
+          cp dist/robots.txt .
+          cp dist/sitemap.xml .
+          cp dist/site.webmanifest .
+          printf '' > .nojekyll
+
+      - name: Commit deploy files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add assets 404.html robots.txt sitemap.xml site.webmanifest .nojekyll
+          if git diff --cached --quiet; then
+            echo "No deploy file changes to commit."
+            exit 0
+          fi
+          git commit -m "Deploy site assets [skip ci]"
+          git push origin HEAD:main
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
