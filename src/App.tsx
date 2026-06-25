@@ -357,8 +357,8 @@ function App() {
               <div className="contact-grid">
                 <article className="info-card fade-in">
                   <h3>Studio Contact</h3>
-                  <p>Email: hello@ueman.studio</p>
-                  <p>Phone: +92 300 000 0000</p>
+                  <p>Email: uswaemaan877@gmail.com</p>
+                  <p>Phone: 03441059787</p>
                   <p>Instagram: @ueman.studio</p>
                 </article>
                 <article className="info-card fade-in stagger-1">
@@ -1366,10 +1366,10 @@ function Footer() {
           <div>
             <div className="eyebrow">Contact</div>
             <p>
-              <Mail size={16} /> hello@ueman.studio
+              <Mail size={16} /> uswaemaan877@gmail.com
             </p>
             <p>
-              <Phone size={16} /> +92 300 000 0000
+              <Phone size={16} /> 03441059787
             </p>
             <p>
               @ueman.studio
