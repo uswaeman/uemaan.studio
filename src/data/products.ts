@@ -133,6 +133,44 @@ export const products: Product[] = [
     collection: 'Occasionwear',
     images: imagesForDress('dune-evening-line', ['/assets/dresses/dune-evening-line/1.jpeg']),
   },
+  {
+    id: 7,
+    slug: 'blushstone-tailored-set',
+    name: 'Blushstone Tailored Set',
+    price: 12500,
+    description:
+      'A polished occasion set with soft structure, a graceful drape, and a refined blush-neutral finish.',
+    details: [
+      'Tailored shirt silhouette with clean finishing',
+      'Coordinated trouser designed for fluid movement',
+      'Elevated neutral suited for day-to-evening wear',
+    ],
+    fabric: 'Soft crepe blend with a smooth premium finish',
+    sizes,
+    color: 'Blush stone',
+    collection: 'Occasionwear',
+    images: imagesForDress('blushstone-tailored-set', ['/assets/dresses/blushstone-tailored-set/1.jpeg']),
+    featured: true,
+  },
+  {
+    id: 8,
+    slug: 'rouge-evening',
+    name: 'Rouge Evening',
+    price: 10500,
+    description:
+      'A statement evening set in a rich tone, balanced with clean lines and an easy, elegant fall.',
+    details: [
+      'Refined shirt shape with festive presence',
+      'Matching trouser for a sleek coordinated look',
+      'Designed for dinners, events, and formal wear',
+    ],
+    fabric: 'Luxe blended fabric with soft sheen and structure',
+    sizes,
+    color: 'Deep rouge',
+    collection: 'Occasionwear',
+    images: imagesForDress('rouge-evening', ['/assets/dresses/rouge-evening/1.jpeg']),
+    bestSeller: true,
+  },
 ];
 
 export const getProductBySlug = (slug?: string) =>
