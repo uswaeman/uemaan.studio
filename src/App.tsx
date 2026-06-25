@@ -61,6 +61,8 @@ const defaultCheckoutForm: CheckoutForm = {
   paymentScreenshot: '',
 };
 
+const DELIVERY_CHARGE = 250;
+
 const reviews = [
   {
     name: 'Hira A.',
@@ -129,6 +131,9 @@ function App() {
     (sum, item) => sum + item.product.price * item.quantity,
     0,
   );
+
+  const deliveryCharge = enrichedCart.length ? DELIVERY_CHARGE : 0;
+  const total = subtotal + deliveryCharge;
 
   const filteredProducts = useMemo(() => {
     const query = searchTerm.trim().toLowerCase();
@@ -221,7 +226,7 @@ function App() {
       ...form,
       orderNumber,
       items: enrichedCart,
-      total: subtotal,
+      total,
     };
 
     setLastOrder(order);
@@ -281,6 +286,8 @@ function App() {
             <CartPage
               items={enrichedCart}
               subtotal={subtotal}
+              deliveryCharge={deliveryCharge}
+              total={total}
               onUpdateQuantity={updateCartQuantity}
             />
           }
@@ -291,6 +298,8 @@ function App() {
             <CheckoutPage
               items={enrichedCart}
               subtotal={subtotal}
+              deliveryCharge={deliveryCharge}
+              total={total}
               onSubmit={handleCheckoutSubmit}
             />
           }
@@ -643,17 +652,15 @@ function ShopPage({
   onAddToCart: (productId: number, size: string, quantity?: number) => void;
   onQuickAdd: (productId: number) => void;
 }) {
-  const [selectedSize, setSelectedSize] = useState<string>('All');
   const [selectedCollection, setSelectedCollection] = useState<string>('All');
 
   const collectionOptions = ['All', ...new Set(products.map((product) => product.collection))];
 
   const visibleProducts = products.filter((product) => {
-    const sizeMatch = selectedSize === 'All' || product.sizes.includes(selectedSize);
     const collectionMatch =
       selectedCollection === 'All' || product.collection === selectedCollection;
 
-    return sizeMatch && collectionMatch;
+    return collectionMatch;
   });
 
   return (
@@ -689,19 +696,6 @@ function ShopPage({
               </button>
             ))}
           </div>
-        </div>
-
-        <div className="filter-row">
-          {['All', ...sizes].map((size) => (
-            <button
-              key={size}
-              className={`filter-chip ${selectedSize === size ? 'active' : ''}`}
-              type="button"
-              onClick={() => setSelectedSize(size)}
-            >
-              Size {size}
-            </button>
-          ))}
         </div>
 
         <div className="product-grid">
@@ -813,19 +807,6 @@ function ProductPage({
             </div>
 
             <div className="eyebrow">Select size</div>
-            <div className="size-row">
-              {product.sizes.map((size) => (
-                <button
-                  key={size}
-                  type="button"
-                  className={`size-pill ${selectedSize === size ? 'active' : ''}`}
-                  onClick={() => setSelectedSize(size)}
-                >
-                  {size}
-                </button>
-              ))}
-            </div>
-
             <div className="eyebrow">Quantity</div>
             <div className="quantity-row">
               <div className="quantity-selector">
@@ -903,10 +884,14 @@ function ProductPage({
 function CartPage({
   items,
   subtotal,
+  deliveryCharge,
+  total,
   onUpdateQuantity,
 }: {
   items: Array<CartItem & { product: Product }>;
   subtotal: number;
+  deliveryCharge: number;
+  total: number;
   onUpdateQuantity: (productId: number, size: string, delta: number) => void;
 }) {
   if (!items.length) {
@@ -976,6 +961,14 @@ function CartPage({
             <span>Cart subtotal</span>
             <strong>PKR {subtotal.toLocaleString()}</strong>
           </div>
+          <div className="summary-row">
+            <span>Delivery</span>
+            <strong>PKR {deliveryCharge.toLocaleString()}</strong>
+          </div>
+          <div className="summary-total">
+            <span>Total</span>
+            <strong>PKR {total.toLocaleString()}</strong>
+          </div>
           <Link className="primary-button" to="/checkout">
             Proceed to Checkout
           </Link>
@@ -988,10 +981,14 @@ function CartPage({
 function CheckoutPage({
   items,
   subtotal,
+  deliveryCharge,
+  total,
   onSubmit,
 }: {
   items: Array<CartItem & { product: Product }>;
   subtotal: number;
+  deliveryCharge: number;
+  total: number;
   onSubmit: (form: CheckoutForm) => void;
 }) {
   const [form, setForm] = useState<CheckoutForm>(defaultCheckoutForm);
@@ -1137,6 +1134,14 @@ function CheckoutPage({
           <div className="summary-total">
             <span>Total Amount</span>
             <strong>PKR {subtotal.toLocaleString()}</strong>
+          </div>
+          <div className="summary-row">
+            <span>Delivery</span>
+            <strong>PKR {deliveryCharge.toLocaleString()}</strong>
+          </div>
+          <div className="summary-total">
+            <span>Grand Total</span>
+            <strong>PKR {total.toLocaleString()}</strong>
           </div>
         </aside>
       </div>
