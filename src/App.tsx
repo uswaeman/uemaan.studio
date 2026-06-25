@@ -43,6 +43,7 @@ type CheckoutForm = {
 
 type OrderRecord = CheckoutForm & {
   orderNumber: string;
+  placedAt: string;
   items: Array<CartItem & { product: Product }>;
   total: number;
 };
@@ -62,6 +63,7 @@ const defaultCheckoutForm: CheckoutForm = {
 };
 
 const DELIVERY_CHARGE = 250;
+const ORDER_STORAGE_KEY = 'ueman.orderHistory';
 
 const reviews = [
   {
@@ -102,6 +104,7 @@ function App() {
   const [wishlist, setWishlist] = useState<number[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [lastOrder, setLastOrder] = useState<OrderRecord | null>(null);
+  const [orderHistory, setOrderHistory] = useState<OrderRecord[]>([]);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [quickAddProduct, setQuickAddProduct] = useState<Product | null>(null);
   const [quickAddSize, setQuickAddSize] = useState('M');
@@ -113,6 +116,19 @@ function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
     setMobileOpen(false);
   }, [location.pathname]);
+
+  useEffect(() => {
+    try {
+      const savedOrders = localStorage.getItem(ORDER_STORAGE_KEY);
+
+      if (savedOrders) {
+        const parsedOrders = JSON.parse(savedOrders) as OrderRecord[];
+        setOrderHistory(Array.isArray(parsedOrders) ? parsedOrders : []);
+      }
+    } catch {
+      setOrderHistory([]);
+    }
+  }, []);
 
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
@@ -225,11 +241,17 @@ function App() {
     const order: OrderRecord = {
       ...form,
       orderNumber,
+      placedAt: new Date().toISOString(),
       items: enrichedCart,
       total,
     };
 
     setLastOrder(order);
+    setOrderHistory((current) => {
+      const updatedOrders = [order, ...current];
+      localStorage.setItem(ORDER_STORAGE_KEY, JSON.stringify(updatedOrders));
+      return updatedOrders;
+    });
     setCart([]);
     navigate('/confirmation');
   };
@@ -238,6 +260,7 @@ function App() {
     <div className="app-shell">
       <Header
         cartCount={cartCount}
+        orderCount={orderHistory.length}
         searchTerm={searchTerm}
         onSearchChange={setSearchTerm}
         mobileOpen={mobileOpen}
@@ -307,6 +330,10 @@ function App() {
         <Route
           path="/confirmation"
           element={<ConfirmationPage order={lastOrder} />}
+        />
+        <Route
+          path="/orders"
+          element={<OrdersPage orders={orderHistory} />}
         />
         <Route
           path="/about"
@@ -413,12 +440,14 @@ function App() {
 
 function Header({
   cartCount,
+  orderCount,
   searchTerm,
   onSearchChange,
   mobileOpen,
   setMobileOpen,
 }: {
   cartCount: number;
+  orderCount: number;
   searchTerm: string;
   onSearchChange: (value: string) => void;
   mobileOpen: boolean;
@@ -454,6 +483,7 @@ function Header({
         <nav className="nav-links" aria-label="Main navigation">
           <NavLink to="/">Home</NavLink>
           <NavLink to="/shop">Shop</NavLink>
+          <NavLink to="/orders">Orders</NavLink>
           <NavLink to="/about">About</NavLink>
           <NavLink to="/faq">FAQ</NavLink>
           <NavLink to="/contact">Contact</NavLink>
@@ -461,6 +491,7 @@ function Header({
 
         <div className="utility-links">
           <NavLink to="/privacy">Privacy</NavLink>
+          <NavLink to="/orders">Orders ({orderCount})</NavLink>
           <NavLink to="/cart">Bag ({cartCount})</NavLink>
         </div>
 
@@ -478,6 +509,7 @@ function Header({
         <div className="container mobile-panel">
           <NavLink to="/">Home</NavLink>
           <NavLink to="/shop">Shop</NavLink>
+          <NavLink to="/orders">Orders ({orderCount})</NavLink>
           <NavLink to="/about">About</NavLink>
           <NavLink to="/faq">FAQ</NavLink>
           <NavLink to="/contact">Contact</NavLink>
@@ -1207,6 +1239,70 @@ function ConfirmationPage({ order }: { order: OrderRecord | null }) {
           )}
           </div>
         </article>
+      </div>
+    </main>
+  );
+}
+
+function OrdersPage({ orders }: { orders: OrderRecord[] }) {
+  if (!orders.length) {
+    return (
+      <main className="page-section page-hero">
+        <div className="container">
+          <article className="content-card fade-in">
+            <div className="eyebrow">Orders</div>
+            <h1>No orders yet</h1>
+            <p>Placed orders from this device will appear here.</p>
+            <Link className="primary-button" to="/shop">
+              Start shopping
+            </Link>
+          </article>
+        </div>
+      </main>
+    );
+  }
+
+  return (
+    <main className="page-section page-hero">
+      <div className="container page-stack">
+        <article className="content-card fade-in">
+          <div className="eyebrow">Orders</div>
+          <h1>Placed orders</h1>
+          <p>Order history is visible on this device for quick tracking.</p>
+        </article>
+
+        {orders.map((order) => (
+          <article key={order.orderNumber} className="content-card fade-in">
+            <div className="summary-row">
+              <span>Order Number</span>
+              <strong>{order.orderNumber}</strong>
+            </div>
+            <div className="summary-row">
+              <span>Placed At</span>
+              <strong>{new Date(order.placedAt).toLocaleString()}</strong>
+            </div>
+            <div className="summary-row">
+              <span>Customer</span>
+              <strong>{order.fullName}</strong>
+            </div>
+            <div className="summary-row">
+              <span>Payment Method</span>
+              <strong>{order.paymentMethod}</strong>
+            </div>
+            {order.items.map((item) => (
+              <div key={`${order.orderNumber}-${item.productId}-${item.size}`} className="summary-row">
+                <span>
+                  {item.product.name} ({item.size}) x {item.quantity}
+                </span>
+                <strong>PKR {(item.product.price * item.quantity).toLocaleString()}</strong>
+              </div>
+            ))}
+            <div className="summary-total">
+              <span>Total</span>
+              <strong>PKR {order.total.toLocaleString()}</strong>
+            </div>
+          </article>
+        ))}
       </div>
     </main>
   );
