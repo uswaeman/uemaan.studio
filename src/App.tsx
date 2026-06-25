@@ -20,6 +20,7 @@ import {
   useParams,
 } from 'react-router-dom';
 import { getProductBySlug, products, sizes, type Product } from './data/products';
+import { fetchCloudOrders, isCloudOrdersEnabled, saveCloudOrder } from './lib/ordersApi';
 
 type CartItem = {
   productId: number;
@@ -118,6 +119,8 @@ function App() {
   }, [location.pathname]);
 
   useEffect(() => {
+    let mounted = true;
+
     try {
       const savedOrders = localStorage.getItem(ORDER_STORAGE_KEY);
 
@@ -128,6 +131,23 @@ function App() {
     } catch {
       setOrderHistory([]);
     }
+
+    const syncCloudOrders = async () => {
+      const cloudOrders = await fetchCloudOrders<OrderRecord>();
+
+      if (!mounted || !cloudOrders?.length) {
+        return;
+      }
+
+      setOrderHistory(cloudOrders);
+      localStorage.setItem(ORDER_STORAGE_KEY, JSON.stringify(cloudOrders));
+    };
+
+    void syncCloudOrders();
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
@@ -236,7 +256,7 @@ function App() {
     setQuickAddProduct(null);
   };
 
-  const handleCheckoutSubmit = (form: CheckoutForm) => {
+  const handleCheckoutSubmit = async (form: CheckoutForm) => {
     const orderNumber = `UM-${Math.floor(100000 + Math.random() * 900000)}`;
     const order: OrderRecord = {
       ...form,
@@ -252,6 +272,7 @@ function App() {
       localStorage.setItem(ORDER_STORAGE_KEY, JSON.stringify(updatedOrders));
       return updatedOrders;
     });
+    void saveCloudOrder(order);
     setCart([]);
     navigate('/confirmation');
   };
@@ -333,7 +354,7 @@ function App() {
         />
         <Route
           path="/orders"
-          element={<OrdersPage orders={orderHistory} />}
+          element={<OrdersPage orders={orderHistory} cloudEnabled={isCloudOrdersEnabled} />}
         />
         <Route
           path="/about"
@@ -1244,7 +1265,13 @@ function ConfirmationPage({ order }: { order: OrderRecord | null }) {
   );
 }
 
-function OrdersPage({ orders }: { orders: OrderRecord[] }) {
+function OrdersPage({
+  orders,
+  cloudEnabled,
+}: {
+  orders: OrderRecord[];
+  cloudEnabled: boolean;
+}) {
   if (!orders.length) {
     return (
       <main className="page-section page-hero">
@@ -1253,6 +1280,11 @@ function OrdersPage({ orders }: { orders: OrderRecord[] }) {
             <div className="eyebrow">Orders</div>
             <h1>No orders yet</h1>
             <p>Placed orders from this device will appear here.</p>
+            <p className="muted">
+              {cloudEnabled
+                ? 'Cloud sync is enabled. New orders will be visible across devices.'
+                : 'Cloud sync is not configured yet. Orders are currently stored on this device only.'}
+            </p>
             <Link className="primary-button" to="/shop">
               Start shopping
             </Link>
@@ -1268,7 +1300,11 @@ function OrdersPage({ orders }: { orders: OrderRecord[] }) {
         <article className="content-card fade-in">
           <div className="eyebrow">Orders</div>
           <h1>Placed orders</h1>
-          <p>Order history is visible on this device for quick tracking.</p>
+          <p>
+            {cloudEnabled
+              ? 'Order history is synced from cloud storage.'
+              : 'Order history is visible on this device. Add Supabase keys to enable cross-device sync.'}
+          </p>
         </article>
 
         {orders.map((order) => (
