@@ -33,7 +33,7 @@ export const products: Product[] = [
     sizes,
     color: 'Soft taupe',
     collection: 'Occasionwear',
-    images: ['/assets/product-1.jpeg', '/assets/product-3.jpeg', '/assets/product-4.jpeg'],
+    images: ['/assets/dresses/moonstone-drape-set/1.jpeg'],
     featured: true,
     bestSeller: true,
   },
@@ -53,7 +53,7 @@ export const products: Product[] = [
     sizes,
     color: 'Off-white',
     collection: 'Daywear',
-    images: ['/assets/product-2.jpeg', '/assets/product-6.jpeg', '/assets/product-7.jpeg'],
+    images: ['/assets/dresses/porcelain-lounge-coord/1.jpeg'],
     featured: true,
     bestSeller: true,
   },
@@ -73,7 +73,7 @@ export const products: Product[] = [
     sizes,
     color: 'Muted sage',
     collection: 'Signature Basics',
-    images: ['/assets/product-3.jpeg', '/assets/product-5.jpeg', '/assets/product-8.jpeg'],
+    images: ['/assets/dresses/sage-atelier-set/1.jpeg'],
     featured: true,
   },
   {
@@ -92,7 +92,7 @@ export const products: Product[] = [
     sizes,
     color: 'Sand beige',
     collection: 'Signature Basics',
-    images: ['/assets/product-4.jpeg', '/assets/product-1.jpeg', '/assets/product-6.jpeg'],
+    images: ['/assets/dresses/sandstone-tailored-set/1.jpeg'],
     bestSeller: true,
   },
   {
@@ -111,7 +111,7 @@ export const products: Product[] = [
     sizes,
     color: 'Cream ivory',
     collection: 'Daywear',
-    images: ['/assets/product-5.jpeg', '/assets/product-2.jpeg', '/assets/product-7.jpeg'],
+    images: ['/assets/dresses/ivory-column-edit/1.jpeg'],
   },
   {
     id: 6,
@@ -129,7 +129,7 @@ export const products: Product[] = [
     sizes,
     color: 'Warm dune',
     collection: 'Occasionwear',
-    images: ['/assets/product-6.jpeg', '/assets/product-1.jpeg', '/assets/product-8.jpeg'],
+    images: ['/assets/dresses/dune-evening-line/1.jpeg'],
   },
 ];
 
