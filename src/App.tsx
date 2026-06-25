@@ -101,6 +101,9 @@ function App() {
   const [searchTerm, setSearchTerm] = useState('');
   const [lastOrder, setLastOrder] = useState<OrderRecord | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [quickAddProduct, setQuickAddProduct] = useState<Product | null>(null);
+  const [quickAddSize, setQuickAddSize] = useState('M');
+  const [quickAddQuantity, setQuickAddQuantity] = useState(1);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -186,6 +189,32 @@ function App() {
     );
   };
 
+  const openQuickAdd = (productId: number) => {
+    const product = products.find((item) => item.id === productId);
+
+    if (!product) {
+      return;
+    }
+
+    setQuickAddProduct(product);
+    setQuickAddSize(product.sizes[0] ?? 'M');
+    setQuickAddQuantity(1);
+  };
+
+  const confirmQuickAdd = () => {
+    if (!quickAddProduct) {
+      return;
+    }
+
+    addToCart(quickAddProduct.id, quickAddSize, quickAddQuantity);
+    setQuickAddProduct(null);
+    navigate('/cart');
+  };
+
+  const closeQuickAdd = () => {
+    setQuickAddProduct(null);
+  };
+
   const handleCheckoutSubmit = (form: CheckoutForm) => {
     const orderNumber = `UM-${Math.floor(100000 + Math.random() * 900000)}`;
     const order: OrderRecord = {
@@ -218,6 +247,7 @@ function App() {
               wishlist={wishlist}
               onToggleWishlist={toggleWishlist}
               onAddToCart={addToCart}
+              onQuickAdd={openQuickAdd}
             />
           }
         />
@@ -231,6 +261,7 @@ function App() {
               setSearchTerm={setSearchTerm}
               onToggleWishlist={toggleWishlist}
               onAddToCart={addToCart}
+              onQuickAdd={openQuickAdd}
             />
           }
         />
@@ -354,6 +385,19 @@ function App() {
       </Routes>
 
       <Footer />
+
+      {quickAddProduct && (
+        <QuickAddModal
+          product={quickAddProduct}
+          selectedSize={quickAddSize}
+          quantity={quickAddQuantity}
+          onClose={closeQuickAdd}
+          onSelectSize={setQuickAddSize}
+          onDecreaseQuantity={() => setQuickAddQuantity((value) => Math.max(1, value - 1))}
+          onIncreaseQuantity={() => setQuickAddQuantity((value) => value + 1)}
+          onConfirm={confirmQuickAdd}
+        />
+      )}
     </div>
   );
 }
@@ -440,10 +484,12 @@ function HomePage({
   wishlist,
   onToggleWishlist,
   onAddToCart,
+  onQuickAdd,
 }: {
   wishlist: number[];
   onToggleWishlist: (productId: number) => void;
   onAddToCart: (productId: number, size: string, quantity?: number) => void;
+  onQuickAdd: (productId: number) => void;
 }) {
   const featured = products.filter((product) => product.featured);
   const bestSellers = products.filter((product) => product.bestSeller);
@@ -526,6 +572,7 @@ function HomePage({
                 liked={wishlist.includes(product.id)}
                 onToggleWishlist={onToggleWishlist}
                 onAddToCart={onAddToCart}
+                onQuickAdd={onQuickAdd}
               />
             ))}
           </div>
@@ -586,6 +633,7 @@ function ShopPage({
   setSearchTerm,
   onToggleWishlist,
   onAddToCart,
+  onQuickAdd,
 }: {
   products: Product[];
   wishlist: number[];
@@ -593,6 +641,7 @@ function ShopPage({
   setSearchTerm: (value: string) => void;
   onToggleWishlist: (productId: number) => void;
   onAddToCart: (productId: number, size: string, quantity?: number) => void;
+  onQuickAdd: (productId: number) => void;
 }) {
   const [selectedSize, setSelectedSize] = useState<string>('All');
   const [selectedCollection, setSelectedCollection] = useState<string>('All');
@@ -663,6 +712,7 @@ function ShopPage({
               liked={wishlist.includes(product.id)}
               onToggleWishlist={onToggleWishlist}
               onAddToCart={onAddToCart}
+              onQuickAdd={onQuickAdd}
             />
           ))}
         </div>
@@ -1023,6 +1073,12 @@ function CheckoutPage({
 
             <div>
               <div className="eyebrow">Payment options</div>
+              <div className="notice-box payment-note">
+                <strong>Online payment reminder</strong>
+                <p>
+                  If you choose EasyPaisa or Bank Transfer, please share your payment screenshot in DM after placing the order.
+                </p>
+              </div>
               <div className="payment-group">
                 {(['COD', 'EasyPaisa', 'Bank Transfer'] as CheckoutForm['paymentMethod'][]).map((method) => (
                   <button
@@ -1135,6 +1191,15 @@ function ConfirmationPage({ order }: { order: OrderRecord | null }) {
               <span>Total</span>
               <strong>PKR {order.total.toLocaleString()}</strong>
             </div>
+          {order.paymentMethod !== 'COD' && (
+            <div className="notice-box payment-note">
+              <strong>Payment screenshot</strong>
+              <p>
+                If you paid online, please share the screenshot in DM for verification.
+                {order.paymentScreenshot ? ` Uploaded file: ${order.paymentScreenshot}.` : ''}
+              </p>
+            </div>
+          )}
           </div>
         </article>
       </div>
@@ -1170,11 +1235,13 @@ function ProductCard({
   liked,
   onToggleWishlist,
   onAddToCart,
+  onQuickAdd,
 }: {
   product: Product;
   liked: boolean;
   onToggleWishlist: (productId: number) => void;
   onAddToCart: (productId: number, size: string, quantity?: number) => void;
+  onQuickAdd: (productId: number) => void;
 }) {
   return (
     <article className="product-card fade-in">
@@ -1206,8 +1273,8 @@ function ProductCard({
           ))}
         </div>
         <div className="product-actions">
-          <button className="primary-button" type="button" onClick={() => onAddToCart(product.id, 'M', 1)}>
-            Add to Cart
+          <button className="primary-button" type="button" onClick={() => onQuickAdd(product.id)}>
+            Quick Add
           </button>
           <Link className="secondary-button" to={`/product/${product.slug}`}>
             View
@@ -1215,6 +1282,70 @@ function ProductCard({
         </div>
       </div>
     </article>
+  );
+}
+
+function QuickAddModal({
+  product,
+  selectedSize,
+  quantity,
+  onClose,
+  onSelectSize,
+  onDecreaseQuantity,
+  onIncreaseQuantity,
+  onConfirm,
+}: {
+  product: Product;
+  selectedSize: string;
+  quantity: number;
+  onClose: () => void;
+  onSelectSize: (size: string) => void;
+  onDecreaseQuantity: () => void;
+  onIncreaseQuantity: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <div className="modal-backdrop" role="presentation" onClick={onClose}>
+      <article className="modal-card" role="dialog" aria-modal="true" aria-label="Select size and add to cart" onClick={(event) => event.stopPropagation()}>
+        <button className="modal-close" type="button" onClick={onClose} aria-label="Close size picker">
+          ×
+        </button>
+        <img src={product.images[0]} alt={product.name} className="modal-image" />
+        <div className="page-stack">
+          <div>
+            <div className="eyebrow">Select size</div>
+            <h3>{product.name}</h3>
+            <p className="muted">Choose a size before adding this item to your cart.</p>
+          </div>
+          <div className="size-row">
+            {product.sizes.map((size) => (
+              <button
+                key={size}
+                type="button"
+                className={`size-pill ${selectedSize === size ? 'active' : ''}`}
+                onClick={() => onSelectSize(size)}
+              >
+                {size}
+              </button>
+            ))}
+          </div>
+          <div className="quantity-row">
+            <div className="quantity-selector">
+              <button className="quantity-button" type="button" onClick={onDecreaseQuantity}>
+                -
+              </button>
+              <span>{quantity}</span>
+              <button className="quantity-button" type="button" onClick={onIncreaseQuantity}>
+                +
+              </button>
+            </div>
+            <button className="primary-button" type="button" onClick={onConfirm}>
+              Add and go to cart
+            </button>
+          </div>
+        </div>
+      </article>
+    </div>
   );
 }
 

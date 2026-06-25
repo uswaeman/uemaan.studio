@@ -205,6 +205,51 @@ img {
   box-shadow: var(--shadow);
 }
 
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(18, 15, 11, 0.42);
+  backdrop-filter: blur(10px);
+}
+
+.modal-card {
+  position: relative;
+  width: min(760px, 100%);
+  max-height: min(90vh, 900px);
+  overflow: auto;
+  border-radius: var(--radius-xl);
+  background: var(--surface-strong);
+  border: 1px solid rgba(25, 22, 18, 0.08);
+  box-shadow: 0 40px 100px rgba(0, 0, 0, 0.22);
+  padding: 22px;
+}
+
+.modal-image {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: calc(var(--radius-xl) - 8px);
+  margin-bottom: 18px;
+}
+
+.modal-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.9);
+  cursor: pointer;
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
 .hero-copy {
   padding: 56px;
   border-radius: var(--radius-xl);
@@ -583,6 +628,10 @@ img {
   padding: 24px;
 }
 
+
+.payment-note {
+  margin-bottom: 18px;
+}
 .instagram-grid {
   grid-template-columns: repeat(4, 1fr);
 }
