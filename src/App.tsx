@@ -19,35 +19,35 @@ import {
   useNavigate,
   useParams,
 } from 'react-router-dom';
-import { getProductBySlug, products, sizes, type Product } from './data/products';
+import {
+  AdminDashboardPage,
+  AdminLayout,
+  AdminLoginPage,
+  AdminOrdersPage,
+  AdminProductsPage,
+  AdminSettingsPage,
+  RequireAdmin,
+} from './admin/AdminPanel';
+import { products as baseProducts, sizes, type Product } from './data/products';
+import {
+  buildManagedProduct,
+  deleteManagedProduct,
+  fetchAdminSession,
+  fetchManagedProducts,
+  isAdminAuthEnabled,
+  isCloudProductAdminEnabled,
+  normalizeOrders,
+  saveManagedProduct,
+  signInAdmin,
+  signOutAdmin,
+  slugifyProductName,
+  subscribeToAdminSession,
+  updateOrderStatus,
+  uploadProductImages,
+} from './lib/adminApi';
 import { fetchCloudOrders, isCloudOrdersEnabled, saveCloudOrder } from './lib/ordersApi';
-
-type CartItem = {
-  productId: number;
-  size: string;
-  quantity: number;
-};
-
-type CheckoutForm = {
-  fullName: string;
-  email: string;
-  phone: string;
-  apartment: string;
-  street: string;
-  city: string;
-  state: string;
-  postalCode: string;
-  country: string;
-  paymentMethod: 'COD' | 'EasyPaisa' | 'Bank Transfer';
-  paymentScreenshot: string;
-};
-
-type OrderRecord = CheckoutForm & {
-  orderNumber: string;
-  placedAt: string;
-  items: Array<CartItem & { product: Product }>;
-  total: number;
-};
+import { adminEmails } from './lib/supabaseClient';
+import type { AdminSession, CartItem, CheckoutForm, OrderRecord, OrderStatus, ProductDraft } from './lib/storeTypes';
 
 const defaultCheckoutForm: CheckoutForm = {
   fullName: '',
@@ -102,6 +102,7 @@ const faqItems = [
 
 function App() {
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [catalogProducts, setCatalogProducts] = useState<Product[]>(baseProducts);
   const [wishlist, setWishlist] = useState<number[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [lastOrder, setLastOrder] = useState<OrderRecord | null>(null);
@@ -110,8 +111,29 @@ function App() {
   const [quickAddProduct, setQuickAddProduct] = useState<Product | null>(null);
   const [quickAddSize, setQuickAddSize] = useState('M');
   const [quickAddQuantity, setQuickAddQuantity] = useState(1);
+  const [adminSession, setAdminSession] = useState<AdminSession | null>(null);
+  const [adminReady, setAdminReady] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+  const redirectPath = new URLSearchParams(location.search).get('p');
+  const normalizedRedirectPath = redirectPath
+    ? redirectPath.startsWith('/')
+      ? redirectPath
+      : `/${redirectPath}`
+    : null;
+  const effectivePath =
+    location.pathname === '/' && normalizedRedirectPath
+      ? normalizedRedirectPath
+      : location.pathname;
+  const isAdminRoute = effectivePath.startsWith('/admin');
+
+  useEffect(() => {
+    if (!normalizedRedirectPath || location.pathname !== '/') {
+      return;
+    }
+
+    navigate(normalizedRedirectPath, { replace: true });
+  }, [location.pathname, navigate, normalizedRedirectPath]);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -126,7 +148,7 @@ function App() {
 
       if (savedOrders) {
         const parsedOrders = JSON.parse(savedOrders) as OrderRecord[];
-        setOrderHistory(Array.isArray(parsedOrders) ? parsedOrders : []);
+        setOrderHistory(Array.isArray(parsedOrders) ? normalizeOrders(parsedOrders) : []);
       }
     } catch {
       setOrderHistory([]);
@@ -139,8 +161,9 @@ function App() {
         return;
       }
 
-      setOrderHistory(cloudOrders);
-      localStorage.setItem(ORDER_STORAGE_KEY, JSON.stringify(cloudOrders));
+      const normalizedCloudOrders = normalizeOrders(cloudOrders);
+      setOrderHistory(normalizedCloudOrders);
+      localStorage.setItem(ORDER_STORAGE_KEY, JSON.stringify(normalizedCloudOrders));
     };
 
     void syncCloudOrders();
@@ -150,6 +173,76 @@ function App() {
     };
   }, []);
 
+  useEffect(() => {
+    let mounted = true;
+
+    const bootstrapAdminData = async () => {
+      const [managedProducts, session] = await Promise.all([
+        fetchManagedProducts(),
+        fetchAdminSession(),
+      ]);
+
+      if (!mounted) {
+        return;
+      }
+
+      setCatalogProducts(managedProducts.length ? managedProducts : baseProducts);
+      setAdminSession(session);
+      setAdminReady(true);
+    };
+
+    void bootstrapAdminData();
+
+    const unsubscribe = subscribeToAdminSession((session) => {
+      if (!mounted) {
+        return;
+      }
+
+      setAdminSession(session);
+      setAdminReady(true);
+    });
+
+    return () => {
+      mounted = false;
+      unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!adminSession) {
+      return;
+    }
+
+    let mounted = true;
+
+    const refreshAdminCloudData = async () => {
+      const [managedProducts, cloudOrders] = await Promise.all([
+        fetchManagedProducts(),
+        fetchCloudOrders<OrderRecord>(),
+      ]);
+
+      if (!mounted) {
+        return;
+      }
+
+      if (managedProducts.length) {
+        setCatalogProducts(managedProducts);
+      }
+
+      if (cloudOrders?.length) {
+        const normalizedCloudOrders = normalizeOrders(cloudOrders);
+        setOrderHistory(normalizedCloudOrders);
+        localStorage.setItem(ORDER_STORAGE_KEY, JSON.stringify(normalizedCloudOrders));
+      }
+    };
+
+    void refreshAdminCloudData();
+
+    return () => {
+      mounted = false;
+    };
+  }, [adminSession]);
+
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   const enrichedCart = useMemo(
@@ -157,10 +250,10 @@ function App() {
       cart
         .map((item) => ({
           ...item,
-          product: products.find((product) => product.id === item.productId),
+          product: catalogProducts.find((product) => product.id === item.productId),
         }))
         .filter((item): item is CartItem & { product: Product } => Boolean(item.product)),
-    [cart],
+    [cart, catalogProducts],
   );
 
   const subtotal = enrichedCart.reduce(
@@ -175,10 +268,10 @@ function App() {
     const query = searchTerm.trim().toLowerCase();
 
     if (!query) {
-      return products;
+      return catalogProducts;
     }
 
-    return products.filter((product) => {
+    return catalogProducts.filter((product) => {
       const haystack = [
         product.name,
         product.description,
@@ -190,7 +283,7 @@ function App() {
 
       return haystack.includes(query);
     });
-  }, [searchTerm]);
+  }, [catalogProducts, searchTerm]);
 
   const addToCart = (productId: number, size: string, quantity = 1) => {
     setCart((current) => {
@@ -231,7 +324,7 @@ function App() {
   };
 
   const openQuickAdd = (productId: number) => {
-    const product = products.find((item) => item.id === productId);
+    const product = catalogProducts.find((item) => item.id === productId);
 
     if (!product) {
       return;
@@ -264,11 +357,12 @@ function App() {
       placedAt: new Date().toISOString(),
       items: enrichedCart,
       total,
+      status: 'Pending',
     };
 
     setLastOrder(order);
     setOrderHistory((current) => {
-      const updatedOrders = [order, ...current];
+      const updatedOrders = normalizeOrders([order, ...current]);
       localStorage.setItem(ORDER_STORAGE_KEY, JSON.stringify(updatedOrders));
       return updatedOrders;
     });
@@ -277,22 +371,100 @@ function App() {
     navigate('/confirmation');
   };
 
+  const handleAdminLogin = async (email: string, password: string) => {
+    const result = await signInAdmin(email, password);
+
+    if (result.success && result.session) {
+      setAdminSession(result.session);
+    }
+
+    return result;
+  };
+
+  const handleAdminLogout = async () => {
+    await signOutAdmin();
+    setAdminSession(null);
+    navigate('/admin/login');
+  };
+
+  const handleAdminOrderStatusChange = async (order: OrderRecord, status: OrderStatus) => {
+    const updatedOrder = await updateOrderStatus(order, status);
+
+    if (!updatedOrder) {
+      return;
+    }
+
+    setOrderHistory((current) => {
+      const updatedOrders = current.map((item) =>
+        item.orderNumber === updatedOrder.orderNumber ? updatedOrder : item,
+      );
+      localStorage.setItem(ORDER_STORAGE_KEY, JSON.stringify(updatedOrders));
+      return updatedOrders;
+    });
+  };
+
+  const handleSaveManagedProduct = async (draft: ProductDraft, files: File[]) => {
+    const nextSlug = slugifyProductName(draft.slug || draft.name);
+    const uploadedImages = await uploadProductImages(nextSlug, files);
+    const mergedImages = uploadedImages.length ? [...draft.images, ...uploadedImages] : draft.images;
+    const nextProduct = buildManagedProduct(
+      {
+        ...draft,
+        slug: nextSlug,
+        images: mergedImages,
+      },
+      catalogProducts,
+    );
+
+    if (!nextProduct.images.length) {
+      return { success: false, message: 'Add at least one product image before saving.' };
+    }
+
+    const success = await saveManagedProduct(nextProduct);
+
+    if (!success) {
+      return { success: false, message: 'Product could not be saved to the backend.' };
+    }
+
+    setCatalogProducts((current) => {
+      const exists = current.some((product) => product.slug === nextProduct.slug);
+      return exists
+        ? current.map((product) => (product.slug === nextProduct.slug ? nextProduct : product))
+        : [...current, nextProduct];
+    });
+
+    return { success: true, message: 'Product saved successfully.' };
+  };
+
+  const handleDeleteManagedProduct = async (slug: string) => {
+    const success = await deleteManagedProduct(slug);
+
+    if (!success) {
+      return;
+    }
+
+    setCatalogProducts((current) => current.filter((product) => product.slug !== slug));
+  };
+
   return (
     <div className="app-shell">
-      <Header
-        cartCount={cartCount}
-        orderCount={orderHistory.length}
-        searchTerm={searchTerm}
-        onSearchChange={setSearchTerm}
-        mobileOpen={mobileOpen}
-        setMobileOpen={setMobileOpen}
-      />
+      {!isAdminRoute && (
+        <Header
+          cartCount={cartCount}
+          orderCount={orderHistory.length}
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+          mobileOpen={mobileOpen}
+          setMobileOpen={setMobileOpen}
+        />
+      )}
 
       <Routes>
         <Route
           path="/"
           element={
             <HomePage
+              products={catalogProducts}
               wishlist={wishlist}
               onToggleWishlist={toggleWishlist}
               onAddToCart={addToCart}
@@ -318,6 +490,7 @@ function App() {
           path="/product/:slug"
           element={
             <ProductPage
+              products={catalogProducts}
               wishlist={wishlist}
               onToggleWishlist={toggleWishlist}
               onAddToCart={addToCart}
@@ -356,6 +529,57 @@ function App() {
           path="/orders"
           element={<OrdersPage orders={orderHistory} cloudEnabled={isCloudOrdersEnabled} />}
         />
+        <Route
+          path="/admin/login"
+          element={
+            <AdminLoginPage
+              session={adminSession}
+              authEnabled={isAdminAuthEnabled}
+              onLogin={handleAdminLogin}
+            />
+          }
+        />
+        <Route element={<RequireAdmin session={adminSession} ready={adminReady} />}>
+          <Route
+            path="/admin/*"
+            element={<AdminLayout session={adminSession} onLogout={handleAdminLogout} />}
+          >
+            <Route
+              index
+              element={<AdminDashboardPage orders={orderHistory} products={catalogProducts} />}
+            />
+            <Route
+              path="orders"
+              element={
+                <AdminOrdersPage
+                  orders={orderHistory}
+                  cloudEnabled={isCloudOrdersEnabled}
+                  onStatusChange={handleAdminOrderStatusChange}
+                />
+              }
+            />
+            <Route
+              path="products"
+              element={
+                <AdminProductsPage
+                  products={catalogProducts}
+                  onSaveProduct={handleSaveManagedProduct}
+                  onDeleteProduct={handleDeleteManagedProduct}
+                />
+              }
+            />
+            <Route
+              path="settings"
+              element={
+                <AdminSettingsPage
+                  authEnabled={isAdminAuthEnabled}
+                  cloudEnabled={isCloudOrdersEnabled || isCloudProductAdminEnabled}
+                  adminEmailPreview={adminEmails.join(', ')}
+                />
+              }
+            />
+          </Route>
+        </Route>
         <Route
           path="/about"
           element={
@@ -441,9 +665,9 @@ function App() {
         />
       </Routes>
 
-      <Footer />
+      {!isAdminRoute && <Footer />}
 
-      {quickAddProduct && (
+      {!isAdminRoute && quickAddProduct && (
         <QuickAddModal
           product={quickAddProduct}
           selectedSize={quickAddSize}
@@ -505,6 +729,7 @@ function Header({
           <NavLink to="/">Home</NavLink>
           <NavLink to="/shop">Shop</NavLink>
           <NavLink to="/orders">Orders</NavLink>
+          <NavLink to="/admin/orders">Admin Orders</NavLink>
           <NavLink to="/about">About</NavLink>
           <NavLink to="/faq">FAQ</NavLink>
           <NavLink to="/contact">Contact</NavLink>
@@ -513,6 +738,7 @@ function Header({
         <div className="utility-links">
           <NavLink to="/privacy">Privacy</NavLink>
           <NavLink to="/orders">Orders ({orderCount})</NavLink>
+          <NavLink to="/admin/orders">Admin</NavLink>
           <NavLink to="/cart">Bag ({cartCount})</NavLink>
         </div>
 
@@ -535,6 +761,7 @@ function Header({
           <NavLink to="/faq">FAQ</NavLink>
           <NavLink to="/contact">Contact</NavLink>
           <NavLink to="/privacy">Privacy Policy</NavLink>
+          <NavLink to="/admin/orders">Admin</NavLink>
           <NavLink to="/cart">Bag ({cartCount})</NavLink>
         </div>
       )}
@@ -543,11 +770,13 @@ function Header({
 }
 
 function HomePage({
+  products,
   wishlist,
   onToggleWishlist,
   onAddToCart,
   onQuickAdd,
 }: {
+  products: Product[];
   wishlist: number[];
   onToggleWishlist: (productId: number) => void;
   onAddToCart: (productId: number, size: string, quantity?: number) => void;
@@ -769,17 +998,19 @@ function ShopPage({
 }
 
 function ProductPage({
+  products,
   wishlist,
   onToggleWishlist,
   onAddToCart,
 }: {
+  products: Product[];
   wishlist: number[];
   onToggleWishlist: (productId: number) => void;
   onAddToCart: (productId: number, size: string, quantity?: number) => void;
 }) {
   const { slug } = useParams();
   const navigate = useNavigate();
-  const product = getProductBySlug(slug);
+  const product = products.find((item) => item.slug === slug);
   const [selectedImage, setSelectedImage] = useState(0);
   const [selectedSize, setSelectedSize] = useState('M');
   const [quantity, setQuantity] = useState(1);

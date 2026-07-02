@@ -1,17 +1,10 @@
-import { createClient } from '@supabase/supabase-js';
+import { isSupabaseEnabled, supabase } from './supabaseClient';
 
 type CloudOrderRow = {
   payload: unknown;
 };
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-export const isCloudOrdersEnabled = Boolean(supabaseUrl && supabaseAnonKey);
-
-const supabase = isCloudOrdersEnabled
-  ? createClient(supabaseUrl as string, supabaseAnonKey as string)
-  : null;
+export const isCloudOrdersEnabled = isSupabaseEnabled;
 
 export const fetchCloudOrders = async <T>(): Promise<T[] | null> => {
   if (!supabase) {

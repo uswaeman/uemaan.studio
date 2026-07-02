@@ -7,16 +7,31 @@ create table if not exists public.orders (
 
 alter table public.orders enable row level security;
 
--- For simple storefront use: allow anonymous insert/select.
--- Tighten these policies later with auth if needed.
+drop policy if exists "anon can insert orders" on public.orders;
+drop policy if exists "anon can read orders" on public.orders;
+drop policy if exists "authenticated can insert orders" on public.orders;
+drop policy if exists "authenticated can read orders" on public.orders;
+
 create policy if not exists "anon can insert orders"
 on public.orders
 for insert
 to anon
 with check (true);
 
+create policy if not exists "authenticated can insert orders"
+on public.orders
+for insert
+to authenticated
+with check (true);
+
 create policy if not exists "anon can read orders"
 on public.orders
 for select
 to anon
+using (true);
+
+create policy if not exists "authenticated can read orders"
+on public.orders
+for select
+to authenticated
 using (true);
