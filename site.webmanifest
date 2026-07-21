@@ -1,5 +1,24 @@
 {
   "name": "ueman.studio",
+  "short_name": "ueman",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f4eee5",
+  "theme_color": "#6b8e23",
+  "icons": [
+    {
+      "src": "/assets/logo.jpg",
+      "sizes": "192x192",
+      "type": "image/jpeg"
+    },
+    {
+      "src": "/assets/logo.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg"
+    }
+  ]
+}{
+  "name": "ueman.studio",
   "short_name": "ueman.studio",
   "start_url": "/",
   "display": "standalone",
