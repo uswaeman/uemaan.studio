@@ -46,7 +46,7 @@ import {
   uploadProductImages,
 } from './lib/adminApi';
 import { fetchCloudOrders, isCloudOrdersEnabled, saveCloudOrder } from './lib/ordersApi';
-import { adminEmails } from './lib/supabaseClient';
+import { adminEmails, supabaseConfigStatus } from './lib/supabaseClient';
 import type { AdminSession, CartItem, CheckoutForm, OrderRecord, OrderStatus, ProductDraft } from './lib/storeTypes';
 
 const defaultCheckoutForm: CheckoutForm = {
@@ -575,6 +575,7 @@ function App() {
                   authEnabled={isAdminAuthEnabled}
                   cloudEnabled={isCloudOrdersEnabled || isCloudProductAdminEnabled}
                   adminEmailPreview={adminEmails.join(', ')}
+                  configStatus={supabaseConfigStatus}
                 />
               }
             />

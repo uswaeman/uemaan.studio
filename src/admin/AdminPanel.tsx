@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { BarChart3, Box, LayoutDashboard, LogOut, PackageSearch, Settings, ShieldCheck } from 'lucide-react';
 import { Link, NavLink, Navigate, Outlet } from 'react-router-dom';
 import { sizes } from '../data/products';
+import type { SupabaseConfigStatus } from '../lib/supabaseClient';
 import type {
   AdminSession,
   ManagedProduct,
@@ -42,6 +43,7 @@ type AdminSettingsPageProps = {
   authEnabled: boolean;
   cloudEnabled: boolean;
   adminEmailPreview: string;
+  configStatus: SupabaseConfigStatus;
 };
 
 const orderStatuses: OrderStatus[] = [
@@ -591,7 +593,25 @@ export function AdminProductsPage({ products, onSaveProduct, onDeleteProduct }: 
   );
 }
 
-export function AdminSettingsPage({ authEnabled, cloudEnabled, adminEmailPreview }: AdminSettingsPageProps) {
+export function AdminSettingsPage({
+  authEnabled,
+  cloudEnabled,
+  adminEmailPreview,
+  configStatus,
+}: AdminSettingsPageProps) {
+  const authStatusLabel = configStatus.enabled ? 'Ready' : 'Needs setup';
+  const urlStatusLabel = configStatus.url.loaded
+    ? configStatus.url.valid
+      ? `Loaded from ${configStatus.url.source}`
+      : `Loaded from ${configStatus.url.source}, but invalid`
+    : 'Missing';
+  const anonKeyStatusLabel = configStatus.anonKey.loaded
+    ? `Loaded from ${configStatus.anonKey.source}`
+    : 'Missing';
+  const adminEmailStatusLabel = configStatus.adminEmails.loaded
+    ? `Loaded from ${configStatus.adminEmails.source}`
+    : 'Missing';
+
   return (
     <div className="admin-page-stack fade-in">
       <section className="admin-hero-card">
@@ -617,8 +637,24 @@ export function AdminSettingsPage({ authEnabled, cloudEnabled, adminEmailPreview
               <strong>{authEnabled ? 'Connected' : 'Needs setup'}</strong>
             </div>
             <div className="admin-list-row">
+              <span>Supabase config</span>
+              <strong>{authStatusLabel}</strong>
+            </div>
+            <div className="admin-list-row">
+              <span>Supabase URL</span>
+              <strong>{urlStatusLabel}</strong>
+            </div>
+            <div className="admin-list-row">
+              <span>Anon key</span>
+              <strong>{anonKeyStatusLabel}</strong>
+            </div>
+            <div className="admin-list-row">
               <span>Allowed admin emails</span>
-              <strong>{adminEmailPreview || 'Add VITE_ADMIN_EMAILS'}</strong>
+              <strong>{adminEmailPreview || 'Add VITE_ADMIN_EMAILS or ADMIN_EMAILS'}</strong>
+            </div>
+            <div className="admin-list-row">
+              <span>Admin allow-list source</span>
+              <strong>{adminEmailStatusLabel}</strong>
             </div>
             {!authEnabled && (
               <div className="admin-notice admin-notice-warning">
