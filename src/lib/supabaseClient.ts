@@ -1,6 +1,16 @@
 import { createClient } from '@supabase/supabase-js';
 
-const readRuntimeConfig = () => {
+type RuntimeConfig = {
+  url: string;
+  anonKey: string;
+  adminEmails: string;
+};
+
+type EnvShape = Record<string, string | undefined>;
+
+const env = import.meta.env as unknown as EnvShape;
+
+const readRuntimeConfig = (): RuntimeConfig => {
   if (typeof window === 'undefined') {
     return {
       url: '',
@@ -18,9 +28,32 @@ const readRuntimeConfig = () => {
 
 const runtimeConfig = readRuntimeConfig();
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || runtimeConfig.url;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || runtimeConfig.anonKey;
-const adminEmailList = import.meta.env.VITE_ADMIN_EMAILS || runtimeConfig.adminEmails || '';
+const pickEnv = (...keys: string[]) => keys.map((key) => env[key]?.trim()).find(Boolean) ?? '';
+
+const normalizeSupabaseUrl = (value: string) => {
+  const trimmed = value.trim();
+
+  if (!trimmed) {
+    return '';
+  }
+
+  try {
+    const parsed = new URL(trimmed);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:' ? parsed.toString() : '';
+  } catch {
+    return '';
+  }
+};
+
+const supabaseUrl = normalizeSupabaseUrl(
+  pickEnv('VITE_SUPABASE_URL', 'SUPABASE_URL') || runtimeConfig.url,
+);
+const supabaseAnonKey = pickEnv(
+  'VITE_SUPABASE_ANON_KEY',
+  'SUPABASE_ANON_KEY',
+) || runtimeConfig.anonKey;
+const adminEmailList =
+  pickEnv('VITE_ADMIN_EMAILS', 'ADMIN_EMAILS') || runtimeConfig.adminEmails || '';
 
 export const isSupabaseEnabled = Boolean(supabaseUrl && supabaseAnonKey);
 
@@ -30,7 +63,7 @@ export const adminEmails = adminEmailList
   .filter(Boolean);
 
 export const supabase = isSupabaseEnabled
-  ? createClient(supabaseUrl as string, supabaseAnonKey as string)
+  ? createClient(supabaseUrl, supabaseAnonKey)
   : null;
 
 export const isAllowedAdminEmail = (email?: string | null) => {

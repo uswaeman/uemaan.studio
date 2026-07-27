@@ -47,7 +47,12 @@ jobs:
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-        run: npm run build
+          VITE_ADMIN_EMAILS: ${{ secrets.VITE_ADMIN_EMAILS }}
+        run: |
+          export SUPABASE_URL="${VITE_SUPABASE_URL:-}"
+          export SUPABASE_ANON_KEY="${VITE_SUPABASE_ANON_KEY:-}"
+          export ADMIN_EMAILS="${VITE_ADMIN_EMAILS:-}"
+          npm run build
 
       - name: Add custom domain file
         run: echo 'ueman.studio' > dist/CNAME
