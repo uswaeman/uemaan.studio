@@ -26,6 +26,7 @@ import {
   AdminOrdersPage,
   AdminProductsPage,
   AdminSettingsPage,
+  AdminRecoveryPage,
   RequireAdmin,
 } from './admin/AdminPanel';
 import { products as baseProducts, sizes, type Product } from './data/products';
@@ -37,12 +38,14 @@ import {
   isAdminAuthEnabled,
   isCloudProductAdminEnabled,
   normalizeOrders,
+  requestAdminPasswordReset,
   saveManagedProduct,
   signInAdmin,
   signOutAdmin,
   slugifyProductName,
   subscribeToAdminSession,
   updateOrderStatus,
+  updateAdminPassword,
   uploadProductImages,
 } from './lib/adminApi';
 import { fetchCloudOrders, isCloudOrdersEnabled, saveCloudOrder } from './lib/ordersApi';
@@ -387,6 +390,26 @@ function App() {
     navigate('/admin/login');
   };
 
+  const handleAdminPasswordReset = async (email: string) => {
+    if (!email.trim()) {
+      return { success: false, message: 'Enter your admin email address first.' };
+    }
+
+    return requestAdminPasswordReset(email.trim());
+  };
+
+  const handleAdminPasswordUpdate = async (password: string) => {
+    const result = await updateAdminPassword(password);
+
+    if (result.success) {
+      await signOutAdmin();
+      setAdminSession(null);
+      navigate('/admin/login');
+    }
+
+    return result;
+  };
+
   const handleAdminOrderStatusChange = async (order: OrderRecord, status: OrderStatus) => {
     const updatedOrder = await updateOrderStatus(order, status);
 
@@ -536,6 +559,17 @@ function App() {
               session={adminSession}
               authEnabled={isAdminAuthEnabled}
               onLogin={handleAdminLogin}
+              onRequestPasswordReset={handleAdminPasswordReset}
+            />
+          }
+        />
+        <Route
+          path="/admin/recover"
+          element={
+            <AdminRecoveryPage
+              session={adminSession}
+              authEnabled={isAdminAuthEnabled}
+              onCompletePasswordReset={handleAdminPasswordUpdate}
             />
           }
         />

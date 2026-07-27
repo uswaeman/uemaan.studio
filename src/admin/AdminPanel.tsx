@@ -20,6 +20,13 @@ type AdminLoginPageProps = {
   session: AdminSession | null;
   authEnabled: boolean;
   onLogin: (email: string, password: string) => Promise<{ success: boolean; message: string }>;
+  onRequestPasswordReset: (email: string) => Promise<{ success: boolean; message: string }>;
+};
+
+type AdminRecoveryPageProps = {
+  session: AdminSession | null;
+  authEnabled: boolean;
+  onCompletePasswordReset: (password: string) => Promise<{ success: boolean; message: string }>;
 };
 
 type AdminDashboardPageProps = {
@@ -92,11 +99,17 @@ export function RequireAdmin({ session, ready }: { session: AdminSession | null;
   return <Outlet />;
 }
 
-export function AdminLoginPage({ session, authEnabled, onLogin }: AdminLoginPageProps) {
+export function AdminLoginPage({
+  session,
+  authEnabled,
+  onLogin,
+  onRequestPasswordReset,
+}: AdminLoginPageProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
 
   if (session) {
     return <Navigate to="/admin" replace />;
@@ -107,6 +120,13 @@ export function AdminLoginPage({ session, authEnabled, onLogin }: AdminLoginPage
     const result = await onLogin(email, password);
     setMessage(result.message);
     setIsSubmitting(false);
+  };
+
+  const handleResetRequest = async () => {
+    setIsResetting(true);
+    const result = await onRequestPasswordReset(email);
+    setMessage(result.message);
+    setIsResetting(false);
   };
 
   return (
@@ -142,8 +162,90 @@ export function AdminLoginPage({ session, authEnabled, onLogin }: AdminLoginPage
           {isSubmitting ? 'Signing in...' : 'Login to Admin'}
         </button>
 
+        <button className="ghost-button admin-back-link" type="button" onClick={handleResetRequest} disabled={isResetting || !authEnabled}>
+          {isResetting ? 'Sending reset email...' : 'Forgot password?'}
+        </button>
+
         <Link className="ghost-button admin-back-link" to="/">
           Back to storefront
+        </Link>
+      </section>
+    </main>
+  );
+}
+
+export function AdminRecoveryPage({
+  session,
+  authEnabled,
+  onCompletePasswordReset,
+}: AdminRecoveryPageProps) {
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [message, setMessage] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleComplete = async () => {
+    if (password.length < 8) {
+      setMessage('Password must be at least 8 characters long.');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setMessage('Passwords do not match.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    const result = await onCompletePasswordReset(password);
+    setMessage(result.message);
+    setIsSubmitting(false);
+  };
+
+  return (
+    <main className="admin-login-shell">
+      <section className="admin-login-card fade-in">
+        <div className="admin-login-badge">
+          <ShieldCheck size={18} />
+          Password recovery
+        </div>
+        <h1>Set a new password</h1>
+        <p>
+          {session
+            ? 'Create a new password for your admin account after opening the recovery link from your email.'
+            : 'Open the password reset link from your inbox first. If you do not have a session yet, go back and request a reset email.'}
+        </p>
+
+        {!authEnabled && (
+          <div className="admin-notice admin-notice-warning">
+            Supabase admin auth is not configured yet.
+          </div>
+        )}
+
+        {session ? (
+          <>
+            <label className="field admin-field">
+              <span>New password</span>
+              <input value={password} onChange={(event) => setPassword(event.target.value)} type="password" placeholder="Enter a new password" />
+            </label>
+            <label className="field admin-field">
+              <span>Confirm password</span>
+              <input value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} type="password" placeholder="Confirm the new password" />
+            </label>
+
+            {message && <div className="admin-notice">{message}</div>}
+
+            <button className="primary-button admin-submit" type="button" onClick={handleComplete} disabled={isSubmitting || !authEnabled}>
+              {isSubmitting ? 'Updating password...' : 'Update password'}
+            </button>
+          </>
+        ) : (
+          <div className="admin-notice admin-notice-warning">
+            No recovery session is active yet. Request a reset email from the admin login page, then return here using the email link.
+          </div>
+        )}
+
+        <Link className="ghost-button admin-back-link" to="/admin/login">
+          Back to login
         </Link>
       </section>
     </main>

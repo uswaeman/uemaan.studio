@@ -91,6 +91,49 @@ export const signInAdmin = async (email: string, password: string) => {
   return { success: true, message: '', session: { email: signedInEmail } satisfies AdminSession };
 };
 
+export const requestAdminPasswordReset = async (email: string) => {
+  if (!supabase) {
+    return {
+      success: false,
+      message: 'Supabase admin auth is not configured yet.',
+    };
+  }
+
+  const redirectTo = `${window.location.origin}/admin/recover`;
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo,
+  });
+
+  if (error) {
+    return { success: false, message: error.message };
+  }
+
+  return {
+    success: true,
+    message: 'Password reset email sent. Use the link in your inbox to set a new password.',
+  };
+};
+
+export const updateAdminPassword = async (password: string) => {
+  if (!supabase) {
+    return {
+      success: false,
+      message: 'Supabase admin auth is not configured yet.',
+    };
+  }
+
+  const { error } = await supabase.auth.updateUser({ password });
+
+  if (error) {
+    return { success: false, message: error.message };
+  }
+
+  return {
+    success: true,
+    message: 'Password updated successfully. You can now sign in with the new password.',
+  };
+};
+
 export const signOutAdmin = async () => {
   if (!supabase) {
     return;
