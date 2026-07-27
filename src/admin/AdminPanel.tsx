@@ -283,6 +283,22 @@ export function AdminDashboardPage({ orders, products }: AdminDashboardPageProps
 }
 
 export function AdminOrdersPage({ orders, cloudEnabled, onStatusChange }: AdminOrdersPageProps) {
+  const safeOrders = Array.isArray(orders) ? orders : [];
+
+  const formatCurrency = (value: unknown) => {
+    const amount = Number(value);
+    return Number.isFinite(amount) ? amount.toLocaleString() : '0';
+  };
+
+  const formatDate = (value: unknown) => {
+    if (typeof value !== 'string' || !value.trim()) {
+      return 'Unknown date';
+    }
+
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? 'Unknown date' : date.toLocaleString();
+  };
+
   return (
     <div className="admin-page-stack fade-in">
       <section className="admin-hero-card">
@@ -305,7 +321,7 @@ export function AdminOrdersPage({ orders, cloudEnabled, onStatusChange }: AdminO
         </div>
       )}
 
-      {!orders.length && (
+      {!safeOrders.length && (
         <article className="admin-panel-card">
           <div className="admin-panel-heading">
             <div>
@@ -326,12 +342,15 @@ export function AdminOrdersPage({ orders, cloudEnabled, onStatusChange }: AdminO
       )}
 
       <div className="admin-card-grid">
-        {orders.map((order) => (
+        {safeOrders.map((order) => {
+          const safeItems = Array.isArray(order.items) ? order.items : [];
+
+          return (
           <article key={order.orderNumber} className="admin-panel-card">
             <div className="admin-panel-heading">
               <div>
-                <h2>{order.orderNumber}</h2>
-                <p>{new Date(order.placedAt).toLocaleString()}</p>
+                <h2>{order.orderNumber || 'Unknown order'}</h2>
+                <p>{formatDate(order.placedAt)}</p>
               </div>
               <select
                 className="admin-select"
@@ -363,23 +382,30 @@ export function AdminOrdersPage({ orders, cloudEnabled, onStatusChange }: AdminO
             </div>
 
             <div className="admin-order-items">
-              {order.items.map((item) => (
+              {safeItems.map((item) => (
                 <div key={`${order.orderNumber}-${item.productId}-${item.size}`} className="admin-list-row">
                   <div>
-                    <strong>{item.product.name}</strong>
-                    <p>Size {item.size} x {item.quantity}</p>
+                    <strong>{item.product?.name || 'Unknown product'}</strong>
+                    <p>Size {item.size || '-'} x {item.quantity ?? 0}</p>
                   </div>
-                  <strong>PKR {(item.product.price * item.quantity).toLocaleString()}</strong>
+                  <strong>PKR {formatCurrency((item.product?.price ?? 0) * (item.quantity ?? 0))}</strong>
                 </div>
               ))}
             </div>
 
+            {!safeItems.length && (
+              <div className="admin-notice admin-notice-warning">
+                This order has no readable item list in its payload.
+              </div>
+            )}
+
             <div className="admin-total-row">
               <span>Total amount</span>
-              <strong>PKR {order.total.toLocaleString()}</strong>
+              <strong>PKR {formatCurrency(order.total)}</strong>
             </div>
           </article>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
